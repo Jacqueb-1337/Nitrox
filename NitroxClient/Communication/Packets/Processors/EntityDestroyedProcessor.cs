@@ -45,6 +45,11 @@ public sealed class EntityDestroyedProcessor(Entities entities) : IClientPacketP
             }
             else
             {
+                // Unregister resource nodes (e.g. outcrops) so the scanner room removes stale pings on remote clients.
+                if (gameObject.TryGetComponent(out ResourceTracker resourceTracker))
+                {
+                    resourceTracker.OnKill();
+                }
                 Entities.DestroyObject(gameObject);
             }
         }
