@@ -39,6 +39,11 @@ public class MapRoomCameraEntitySpawner : EntitySpawner<MapRoomCameraEntity>
 
         NitroxEntity.SetNewId(camera.gameObject, entity.Id);
 
+        // Add the replicator so this client can receive movement snapshots while a remote
+        // player is piloting the camera. BeginControl removes it (and adds it back on FreeCamera)
+        // if the local player ever takes control, to avoid conflicting with local physics.
+        camera.gameObject.AddComponent<MapRoomCameraMovementReplicator>();
+
         if (!entity.IsDocked)
         {
             // Camera was deployed when the session was saved — move it back to its world position.
