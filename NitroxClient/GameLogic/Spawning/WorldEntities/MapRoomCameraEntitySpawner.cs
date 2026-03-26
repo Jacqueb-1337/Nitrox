@@ -1,5 +1,6 @@
 using System.Collections;
 using NitroxClient.GameLogic.Spawning.Abstract;
+using NitroxClient.GameLogic.Spawning.Metadata;
 using NitroxClient.MonoBehaviours;
 using Nitrox.Model.DataStructures;
 using Nitrox.Model.Subnautica.DataStructures.GameLogic.Entities;
@@ -14,6 +15,13 @@ namespace NitroxClient.GameLogic.Spawning.WorldEntities;
 /// </summary>
 public class MapRoomCameraEntitySpawner : EntitySpawner<MapRoomCameraEntity>
 {
+    private readonly EntityMetadataManager entityMetadataManager;
+
+    public MapRoomCameraEntitySpawner(EntityMetadataManager entityMetadataManager)
+    {
+        this.entityMetadataManager = entityMetadataManager;
+    }
+
     protected override IEnumerator SpawnAsync(MapRoomCameraEntity entity, TaskResult<Optional<GameObject>> result)
     {
         if (!NitroxEntity.TryGetObjectFrom(entity.ParentId, out GameObject mapRoomGO))
@@ -51,6 +59,11 @@ public class MapRoomCameraEntitySpawner : EntitySpawner<MapRoomCameraEntity>
             camera.transform.position = entity.WorldTransform.LocalPosition.ToUnity();
             camera.transform.rotation = entity.WorldTransform.LocalRotation.ToUnity();
         }
+
+        // If dock state changed after the initial spawn (e.g., camera was undocked during a
+        // previous session), the server stores that as metadata — apply it now to override the
+        // entity's original IsDocked value.
+        entityMetadataManager.ApplyMetadata(camera.gameObject, entity.Metadata);
 
         result.Set(Optional.Of(camera.gameObject));
     }
