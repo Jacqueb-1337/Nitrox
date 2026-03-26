@@ -18,6 +18,12 @@ public abstract class MovementReplicator : MonoBehaviour
 
     private readonly LinkedList<Snapshot> buffer = new();
     /// <summary>
+    /// Set when the vehicle's GameObject was disabled (e.g. LargeWorld cell sleep). On the next Update() after
+    /// waking back up, we snap directly to the latest received position rather than interpolating from the
+    /// stale transform position, which would otherwise produce a visible 30-second teleport.
+    /// </summary>
+    private bool needsPositionSnap;
+    /// <summary>
     /// To ensure a smooth experience, we need a max allowed latency value which should top the incoming latencies at all times.
     /// Big increments and any decrements of this value will likely cause stutter, so we try to avoid changing this value too much.
     /// But it is required that after a lag spike, we eventually lower down that value, which is done periodically <see cref="NitroxPrefs.LatencyUpdatePeriod"/>.
@@ -127,6 +133,14 @@ public abstract class MovementReplicator : MonoBehaviour
         MovementBroadcaster.UnregisterReplicator(this);
     }
 
+    public void OnDisable()
+    {
+        // Clear any buffered snapshots so they don't accumulate unprocessed while the GO is inactive.
+        // Mark that a position snap is needed so Update() doesn't try to interpolate from a stale transform.
+        ClearBuffer();
+        needsPositionSnap = true;
+    }
+
     public void Update()
     {
         if (buffer.Count == 0)
@@ -145,6 +159,20 @@ public abstract class MovementReplicator : MonoBehaviour
         LinkedListNode<Snapshot> firstNode = buffer.First;
         if (firstNode == null)
         {
+            return;
+        }
+
+        // If the GO just woke up from a cell sleep, snap directly to the latest known position.
+        // Without this, Update() would interpolate from the stale transform position (up to 30s out of date)
+        // to the current snapshot position, producing a visible teleport.
+        if (needsPositionSnap)
+        {
+            needsPositionSnap = false;
+            MovementData snapData = buffer.Last.Value.Data;
+            transform.position = snapData.Position.ToUnity();
+            transform.rotation = snapData.Rotation.ToUnity();
+            ApplyNewMovementData(snapData);
+            ClearBuffer();
             return;
         }
 
