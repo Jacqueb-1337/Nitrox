@@ -29,8 +29,10 @@ public class VehicleEntitySpawner : EntitySpawner<VehicleEntity>
             Constructor constructor = spawnerObj.Value.GetComponent<Constructor>();
             float distance = (constructor.transform.position - Player.main.transform.position).magnitude;
             bool withinDistance = distance <= ALLOWED_CONSTRUCTOR_DISTANCE;
+            // Skip constructor animation if the vehicle has already been driven away from the bay
+            bool vehicleNearConstructor = (vehicleEntity.Transform.Position.ToUnity() - constructor.transform.position).magnitude <= ALLOWED_CONSTRUCTOR_DISTANCE;
 
-            if (constructor && withinDistance)
+            if (constructor && withinDistance && vehicleNearConstructor)
             {
                 MobileVehicleBay.TransmitLocalSpawns = false;
                 yield return SpawnViaConstructor(vehicleEntity, constructor, result);
@@ -135,6 +137,19 @@ public class VehicleEntitySpawner : EntitySpawner<VehicleEntity>
         NitroxEntity.SetNewId(constructedObject, vehicleEntity.Id);
 
         AddCinematicControllers(constructedObject);
+
+        // Apply the server-authoritative position after the constructor animation, in case the vehicle
+        // was still within the spawn window but had already moved from the bay on another client.
+        constructedObject.transform.position = vehicleEntity.Transform.Position.ToUnity();
+        constructedObject.transform.rotation = vehicleEntity.Transform.Rotation.ToUnity();
+        if (constructedObject.TryGetComponent(out Rigidbody rigidbody))
+        {
+            rigidbody.isKinematic = false;
+        }
+        if (constructedObject.TryGetComponent(out Vehicle vehicle))
+        {
+            vehicle.constructionFallOverride = false;
+        }
 
         result.Set(constructedObject);
         yield break;
