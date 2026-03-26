@@ -169,7 +169,7 @@ public class InteriorPieceEntitySpawner : EntitySpawner<InteriorPieceEntity>
         return interiorPiece;
     }
 
-    public static IEnumerator RestoreMapRoom(Base @base, MapRoomEntity mapRoomEntity)
+    public static IEnumerator RestoreMapRoom(Base @base, MapRoomEntity mapRoomEntity, Entities entities)
     {
         MapRoomFunctionality mapRoomFunctionality = @base.GetMapRoomFunctionalityForCell(mapRoomEntity.Cell.ToUnity());
         if (!mapRoomFunctionality)
@@ -178,5 +178,9 @@ public class InteriorPieceEntitySpawner : EntitySpawner<InteriorPieceEntity>
             yield break;
         }
         NitroxEntity.SetNewId(mapRoomFunctionality.gameObject, mapRoomEntity.Id);
+        if (mapRoomEntity.ChildEntities.Count > 0)
+        {
+            yield return entities.SpawnBatchAsync(mapRoomEntity.ChildEntities, true);
+        }
     }
 }

@@ -24,8 +24,7 @@ public static class BuildingPostSpawner
         }
         else if (gameObject.TryGetComponent(out MapRoomFunctionality mapRoomFunctionality))
         {
-            // TODO: remove once scanner rooms are properly synced
-            Log.InGame(Language.main.Get("Nitrox_ScannerRoomWarn"));
+            // TODO: Camera sync (deploy, movement, cell re-registration) is not yet implemented
             return null;
         }
 
